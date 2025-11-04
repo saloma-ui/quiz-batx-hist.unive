@@ -6,7 +6,7 @@
   <title>Quiz Test Lite — 1r Batx</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
-    // Tailwind: força mode fosc per classe .dark (no per media)
+    // Tailwind: força mode fosc per classe .dark
     tailwind.config = { darkMode: 'class' };
   </script>
   <meta name="color-scheme" content="light dark" />
@@ -39,7 +39,7 @@
             </select>
           </label>
           <label class="block text-sm mb-2">Nombre d’ítems
-            <input id="count" type="number" min="5" max="55" step="1" value="55" class="mt-1 w-full px-3 py-2 rounded-xl border bg-white/80 dark:bg-neutral-800/70" />
+            <input id="count" type="number" min="1" max="55" step="1" value="55" class="mt-1 w-full px-3 py-2 rounded-xl border bg-white/80 dark:bg-neutral-800/70" />
           </label>
           <label class="block text-sm mb-2">Barreja preguntes <input id="shuffle" type="checkbox" class="ml-2" checked></label>
           <label class="block text-sm mb-3">Feedback immediat <input id="immediate" type="checkbox" class="ml-2" checked></label>
@@ -152,7 +152,7 @@
       { q:"La continuitat lateral implica que…", opts:["les capes desapareixen sempre bruscament","les capes s’estenen fins a afinar-se o canviar de facies","totes les capes són iguals","només val a deserts"], answer:1, tag:"geologic", why:"Dipòsits s’allarguen lateralment amb transicions."},
       { q:"Inclusions de roca A dins d’un conglomerat B indiquen…", opts:["A és més jove que B","A és més antiga que B","edat igual","res"], answer:1, tag:"geologic", why:"El clast A ha d’existir abans d’incorporar-se a B."},
       { q:"Pols → còdols → planetesimals → embrions descriu…", opts:["tectònica de plaques","metamorfisme","acreció planetària","glaciacions"], answer:2, tag:"sistema", why:"Etapes de creixement d’objectes al disc."},
-      { q:"El mètode U‑Pb en zircons és útil perquè…", opts:["el zirconi no conté U","tanca bé el sistema i resisteix metamorfisme","només data roques joves","dona edats relatives"], answer:1, tag:"datacio", why:"Alta temperatura de tancament i resistència."},
+      { q:"El mètode U‑Pb en zircons és útil perquè…", opts:["el zirconi no conté U","tanca bé el sistema i resisteix metamorffisme","només data roques joves","dona edats relatives"], answer:1, tag:"datacio", why:"Alta temperatura de tancament i resistència."},
       { q:"Una disconformitat és…", opts:["contacte sedimentari‑sedimentari paral·lel amb erosió","sediment sobre ígnia","angular","sense bretxa temporal"], answer:0, tag:"geologic", why:"Superfície erosiva entre paquets paral·lels."},
       { q:"Actualisme equival a pensar que…", opts:["el passat és incomprensible","els processos actuals són comparables als del passat","els processos canvien cada segle","només val per volcans"], answer:1, tag:"geologic", why:"Misma física/processos bàsics en temps geològic."},
       { q:"Un dic magmàtic tallant una seqüència indica que el dic és…", opts:["anterior","coetani","posterior","indeterminat"], answer:2, tag:"geologic", why:"El tall és posterior."},
@@ -166,25 +166,32 @@
       { q:"La diferència clau entre concordança i discontinuïtat és…", opts:["inclinació d’estrats","existència o no d’una bretxa temporal","litologia","presència de fòssils"], answer:1, tag:"geologic", why:"Discontinuïtat = hiatus temporal; concordança = continuïtat."},
     ];
 
-    // --- Helpers
+    // --- Helpers & estat
     const $ = (id) => document.getElementById(id);
     const LS = { get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}}, set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}} };
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const savedDark = LS.get('quiz-theme-dark', null);
-    const state = { dark: (savedDark===null? prefersDark : savedDark), run:null, i:0, answers:{}, flags:{}, startTime:0, timer:null };
+    const state = { dark: (savedDark===null? prefersDark : savedDark), run:null, i:0, answers:{}, flags:{}, startTime:0, timer:null, finished:false };
 
     function applyTheme(){ document.documentElement.classList.toggle('dark', state.dark); $('themeBtn').textContent = state.dark ? 'Mode clar' : 'Mode fosc'; }
     function tagLabel(t){ return {univers:'Univers',sistema:'Sistema Solar',geologic:'Temps geològic',datacio:'Datació'}[t]||t; }
     function tagColor(t){ return {univers:'bg-sky-100 text-sky-700',sistema:'bg-amber-100 text-amber-700',geologic:'bg-lime-100 text-lime-700',datacio:'bg-violet-100 text-violet-700'}[t]||'bg-neutral-200'; }
     function shuffle(a){ const c=[...a]; for(let i=c.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [c[i],c[j]]=[c[j],c[i]];} return c; }
 
+    function computeCount(poolLen, requested){
+      const req = Number.isFinite(requested) ? requested : poolLen;
+      return Math.max(1, Math.min(poolLen, req));
+    }
+
     function buildRun(){
-      const topic = $('topic').value; const count = Math.max(5, Math.min(55, parseInt($('count').value)||15));
+      const topic = $('topic').value;
       let pool = Q.map((q,i)=>({...q, id:i}));
       if (topic!=='all') pool = pool.filter(q=>q.tag===topic);
       if ($('shuffle').checked) pool = shuffle(pool);
+      const requested = parseInt($('count').value, 10);
+      const count = computeCount(pool.length, isNaN(requested) ? undefined : requested);
       const run = pool.slice(0, count);
-      state.run = run; state.i = 0; state.answers = {}; state.flags = {}; state.startTime = Date.now();
+      state.run = run; state.i = 0; state.answers = {}; state.flags = {}; state.startTime = Date.now(); state.finished = false;
       $('qTotal').textContent = run.length; $('statHit').textContent = 0; $('statMiss').textContent = 0; $('statScore').textContent = 0;
       $('quizBox').classList.remove('hidden'); $('summary').classList.add('hidden');
       clearInterval(state.timer); state.timer = setInterval(()=>{ const s=Math.floor((Date.now()-state.startTime)/1000); const m=Math.floor(s/60); const r=s%60; $('timer').textContent = `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }, 1000);
@@ -199,7 +206,16 @@
         const id = `opt_${q.id}_${idx}`; const wrapper = document.createElement('div');
         wrapper.className = 'opt rounded-xl border px-3 py-2';
         const input = document.createElement('input'); input.type='radio'; input.name='opt'; input.id=id; input.className='mr-2'; input.checked = state.answers[q.id]?.choice===idx;
-        input.onchange = ()=>{ state.answers[q.id] = { choice: idx, correct: idx===q.answer }; saveProgress(); if ($('immediate').checked) showExplain(); updateStats(); };
+        input.onchange = ()=>{
+          const immediate = $('immediate').checked;
+          const prev = state.answers[q.id] || {};
+          const firstChoice = prev.firstChoice ?? (immediate ? idx : undefined);
+          const firstCorrect = prev.firstCorrect ?? (immediate ? (idx===q.answer) : undefined);
+          state.answers[q.id] = { ...prev, choice: idx, correct: idx===q.answer, firstChoice, firstCorrect };
+          saveProgress();
+          if (immediate) showExplain();
+          updateStats();
+        };
         const label = document.createElement('label'); label.htmlFor=id; label.innerHTML = `<span class="font-medium mr-2">${String.fromCharCode(65+idx)})</span> ${opt}`;
         wrapper.appendChild(input); wrapper.appendChild(label); box.appendChild(wrapper);
       });
@@ -212,25 +228,61 @@
       const exp = $('explain');
       const ok = a.choice===q.answer;
       exp.classList.remove('hidden');
-      exp.innerHTML = ok ? `<span class="text-emerald-600 font-medium">Correcte.</span> ${q.why||''}` : `<span class="text-rose-600 font-medium">Incorrecte.</span> Resposta correcta: <strong>${String.fromCharCode(65+q.answer)}</strong>. ${q.why||''}`;
+      // No revelar la resposta correcta en el feedback immediat quan és incorrecte
+      exp.innerHTML = ok
+        ? `<span class="text-emerald-600 font-medium">Correcte.</span> ${q.why||''}`
+        : `<span class="text-rose-600 font-medium">Incorrecte.</span> ${q.why||''}`;
+    }
+
+    function scoringCorrect(qid, answerIdx){
+      const a = state.answers[qid];
+      if (!a) return null; // sense resposta
+      if ($('immediate').checked){
+        if (a.firstCorrect === undefined) return null; // encara no hi ha intent
+        return a.firstCorrect === true; // compta el PRIMER intent
+      }
+      return a.choice === answerIdx; // mode examen: compta la resposta final
     }
 
     function updateStats(){
-      const ans = Object.values(state.answers);
-      const hits = ans.filter(a=>a.correct===true).length; const miss = ans.filter(a=>a.correct===false).length; const total = state.run?.length||0;
-      const score = total? Math.round((hits/total)*100):0; $('statHit').textContent = hits; $('statMiss').textContent = miss; $('statScore').textContent = score;
+      const run = state.run || [];
+      const immediate = $('immediate').checked;
+      // En mode examen (feedback OFF) i mentre no s'hagi finalitzat, no revelar estadístiques
+      if (!immediate && !state.finished){
+        $('statHit').textContent = '—';
+        $('statMiss').textContent = '—';
+        $('statScore').textContent = '—';
+        return;
+      }
+      let hits = 0, miss = 0;
+      run.forEach(q=>{
+        const sc = scoringCorrect(q.id, q.answer);
+        if (sc === true) hits++; else if (sc === false) miss++;
+      });
+      const total = run.length || 0;
+      const score = total ? Math.round((hits/total)*100) : 0;
+      $('statHit').textContent = hits; $('statMiss').textContent = miss; $('statScore').textContent = score;
     }
 
-    function updateNavButtons(){ $('prevBtn').disabled = state.i===0; $('nextBtn').disabled = state.run && state.i===state.run.length-1; }
+    function updateNavButtons(){
+      // Sempre permet "Següent"; a l'última pregunta canvia el text a "Finalitza"
+      const atFirst = state.i === 0;
+      const atLast = state.run && state.i === state.run.length - 1;
+      const next = $('nextBtn');
+      $('prevBtn').disabled = atFirst;
+      next.disabled = false; // no bloquejar; necessari per poder acabar el test
+      next.textContent = atLast ? 'Finalitza ✓' : 'Següent →';
+    }
 
     function saveProgress(){ LS.set('quiz-theme-dark', state.dark); LS.set('quiz-progress', { answers: state.answers, flags: state.flags }); }
 
     function finish(){
+      state.finished = true;
       clearInterval(state.timer);
       const run = state.run || []; const res = run.map((q,ix)=>({
         qid:q.id, tag:q.tag, q:q.q, opts:q.opts, answer:q.answer,
         choice: state.answers[q.id]?.choice ?? null,
-        correct: state.answers[q.id]?.choice === q.answer,
+        correct: scoringCorrect(q.id, q.answer) === true,
         why: q.why || ''
       }));
       const hits = res.filter(r=>r.correct).length; const score = run.length? Math.round((hits/run.length)*100):0;
@@ -251,7 +303,7 @@
           <ul class="mt-1 text-sm text-neutral-700 dark:text-neutral-300">`;
         r.opts.forEach((o,oi)=>{
           const isAns = oi===r.answer; const isChoice = oi===r.choice;
-          html += `<li class="pl-2">${String.fromCharCode(65+oi)}) ${o} ${isAns? ' <span class="text-emerald-600">(correcta)</span>':''}${(isChoice&&!isAns)? ' <span class="text-rose-600">(la teva)</span>':''}</li>`;
+          html += `<li class="pl-2">${String.fromCharCode(65+oi)}) ${o} ${isAns? ' <span class="text-emerald-600">(correcta)</span>':''}${(isChoice&&!isAns)? ' <span class=\"text-rose-600\">(la teva)</span>':''}</li>`;
         });
         html += `</ul><div class="text-sm mt-1">${r.why||''}</div></div>`;
       });
@@ -260,11 +312,13 @@
       $('quizBox').classList.add('hidden');
       $('reviewWrong').onclick = ()=> reviewFilter((r)=>!r.correct);
       $('reviewFlagged').onclick = ()=> reviewFilter((r)=> flagged.includes(r.qid));
+      // Actualitza estadístiques ara que l'intent està tancat (mostra resultats en mode examen)
+      updateStats();
     }
 
     function reviewFilter(predicate){
       const run = state.run; if (!run) return;
-      const filtered = run.filter((q)=> predicate({ qid:q.id, correct: state.answers[q.id]?.choice===q.answer }));
+      const filtered = run.filter((q)=> predicate({ qid:q.id, correct: scoringCorrect(q.id, q.answer) === true }));
       if (!filtered.length) { alert('No hi ha preguntes per revisar amb aquest criteri.'); return; }
       state.run = filtered; state.i = 0; $('qTotal').textContent = filtered.length; $('summary').classList.add('hidden'); $('quizBox').classList.remove('hidden'); renderQuestion();
     }
@@ -275,9 +329,9 @@
       const list = (state.run||[]);
       list.forEach((q,i)=>{
         const d=document.createElement('div'); d.className='rounded-2xl p-3 border bg-white/60 dark:bg-neutral-800/60';
-        d.innerHTML = `<div class="text-xs px-2 py-1 rounded-lg ${tagColor(q.tag)} inline-block">${tagLabel(q.tag)}</div>
-          <div class="text-sm font-medium mt-1">${i+1}. ${q.q}</div>
-          <ul class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">${q.opts.map((o,oi)=>`<li>${String.fromCharCode(65+oi)}) ${o}</li>`).join('')}</ul>`;
+        d.innerHTML = `<div class=\"text-xs px-2 py-1 rounded-lg ${tagColor(q.tag)} inline-block\">${tagLabel(q.tag)}</div>
+          <div class=\"text-sm font-medium mt-1\">${i+1}. ${q.q}</div>
+          <ul class=\"mt-1 text-sm text-neutral-600 dark:text-neutral-300\">${q.opts.map((o,oi)=>`<li>${String.fromCharCode(65+oi)}) ${o}</li>`).join('')}</ul>`;
         root.appendChild(d);
       });
     }
@@ -285,18 +339,34 @@
     // Events
     $('themeBtn').onclick = ()=>{ state.dark=!state.dark; applyTheme(); LS.set('quiz-theme-dark', state.dark); };
     $('startBtn').onclick = buildRun;
-    $('resetBtn').onclick = ()=>{ state.run=null; state.i=0; state.answers={}; state.flags={}; clearInterval(state.timer); $('quizBox').classList.add('hidden'); $('summary').classList.add('hidden'); renderBank(); updateStats(); };
+    $('resetBtn').onclick = ()=>{ state.run=null; state.i=0; state.answers={}; state.flags={}; state.finished=false; clearInterval(state.timer); $('quizBox').classList.add('hidden'); $('summary').classList.add('hidden'); renderBank(); updateStats(); };
     $('prevBtn').onclick = ()=>{ if(!state.run) return; state.i = Math.max(0, state.i-1); renderQuestion(); };
     $('nextBtn').onclick = ()=>{ if(!state.run) return; if (state.i < state.run.length-1) { state.i++; renderQuestion(); } else { finish(); } };
     $('checkBtn').onclick = ()=>{ showExplain(); };
     $('flagBtn').onclick = ()=>{ const q=state.run[state.i]; state.flags[q.id]=!state.flags[q.id]; saveProgress(); alert(state.flags[q.id]? 'Marcada per revisar':'Desmarcada'); };
+    $('immediate').addEventListener('change', updateStats);
 
     $('exportBtn').onclick = ()=>{
       const blob = new Blob([JSON.stringify({ answers: state.answers, flags: state.flags }, null, 2)], {type:'application/json'});
       const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='resultats_quiz.json'; a.click(); URL.revokeObjectURL(url);
     };
+
+    // Importa JSON i mostra resum immediat
     $('importInput').onchange = (e)=>{
-      const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try { const j=JSON.parse(r.result); if(j.answers) state.answers=j.answers; if(j.flags) state.flags=j.flags; alert('Resultats importats.'); } catch {} }; r.readAsText(f); };
+      const f=e.target.files?.[0]; if(!f) return; const r=new FileReader();
+      r.onload=()=>{
+        try {
+          const j=JSON.parse(r.result);
+          if(j.answers && typeof j.answers==='object') state.answers=j.answers;
+          if(j.flags && typeof j.flags==='object') state.flags=j.flags;
+          // Després d'importar, mostra directament el resum amb TOT el banc
+          state.run = Q.map((q,i)=>({...q, id:i}));
+          $('qTotal').textContent = state.run.length;
+          finish();
+        } catch { alert('No s\'ha pogut llegir el JSON.'); }
+      };
+      r.readAsText(f);
+    };
 
     // Init
     applyTheme(); renderBank(); updateStats();
@@ -314,6 +384,36 @@
     }
     updateCountMax();
     $('topic').addEventListener('change', updateCountMax);
+
+    // --- Tests ràpids (no intrusius) ---
+    (function selfTests(){
+      const tests = [];
+      const assert = (name, cond) => { tests.push({name, pass: !!cond}); if(!cond) console.error('TEST FAIL:', name); };
+      // 1) Banc ha de tenir 55 preguntes
+      assert('Q length == 55', Q.length === 55);
+      // 2) Fórmula de fracció restant (P:D=3:1) → ~0,415 mitges vides
+      const halves = (P,D) => Math.log2((P+D)/P);
+      assert('P:D 3:1 ~ 0.415', Math.abs(halves(3,1) - Math.log2(4/3)) < 1e-12);
+      // 3) computeCount ha de respectar el nombre demanat
+      assert('computeCount cap a 2 de 10', computeCount(10,2) === 2);
+      assert('computeCount límit superior (3 de 3)', computeCount(3,5) === 3);
+      assert('computeCount mínim 1', computeCount(10,-1) === 1);
+      assert('computeCount NaN → tot', computeCount(7, NaN) === 7);
+      // 4) Scoring: primer intent en feedback immediat
+      const wasImmediate = $('immediate').checked; $('immediate').checked = true;
+      state.answers[999] = { firstCorrect:false, choice:1 };
+      assert('scoring first-attempt KO', scoringCorrect(999, 1) === false);
+      $('immediate').checked = wasImmediate;
+      // 5) updateNavButtons canvia a "Finalitza" a l'última
+      const keepRun = state.run, keepI = state.i; state.run = [{},{}]; state.i = 1; updateNavButtons();
+      assert('label Finalitza', $('nextBtn').textContent.includes('Finalitza'));
+      state.run = keepRun; state.i = keepI; updateNavButtons();
+      // 6) En mode examen (feedback OFF) abans de finalitzar, estadístiques ocultes
+      const prevImmediate = $('immediate').checked; $('immediate').checked = false; state.finished=false; state.run=[{id:0,answer:0},{id:1,answer:1}]; updateStats();
+      assert('stats hidden in exam before finish', $('statScore').textContent === '—');
+      $('immediate').checked = prevImmediate; state.run=null; updateStats();
+      console.log('Self-tests:', tests);
+    })();
   </script>
 </body>
 </html>
