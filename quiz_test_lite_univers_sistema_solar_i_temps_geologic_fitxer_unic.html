@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ca" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Test Lite — 1r Batx</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    .opt:hover { background: rgba(0,0,0,0.04); }
+    .opt label { cursor: pointer; width: 100%; display: block; }
+  </style>
+</head>
+<body class="h-full bg-neutral-50 text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
+  <main class="max-w-5xl mx-auto p-4 md:p-8">
+    <header class="flex items-center justify-between gap-4 flex-wrap">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-semibold">Quiz tipus test — Univers · Sistema Solar · Temps geològic</h1>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">Mode examen o pràctica amb feedback immediat. Guarda el progrés al navegador.</p>
+      </div>
+      <button id="themeBtn" class="px-3 py-2 rounded-xl border">Mode fosc</button>
+    </header>
+
+    <section class="grid md:grid-cols-3 gap-4 mt-6">
+      <div class="md:col-span-1 space-y-3">
+        <div class="p-3 rounded-2xl border bg-white/60 dark:bg-neutral-800/60">
+          <div class="text-sm font-medium mb-2">Configuració</div>
+          <label class="block text-sm mb-2">Tema
+            <select id="topic" class="mt-1 w-full px-3 py-2 rounded-xl border bg-white/80 dark:bg-neutral-800/70">
+              <option value="all">Tots</option>
+              <option value="univers">Univers</option>
+              <option value="sistema">Sistema Solar</option>
+              <option value="geologic">Temps geològic</option>
+              <option value="datacio">Datació</option>
+            </select>
+          </label>
+          <label class="block text-sm mb-2">Nombre d’ítems
+            <input id="count" type="number" min="5" max="55" step="1" value="15" class="mt-1 w-full px-3 py-2 rounded-xl border bg-white/80 dark:bg-neutral-800/70" />
+          </label>
+          <label class="block text-sm mb-2">Barreja preguntes <input id="shuffle" type="checkbox" class="ml-2" checked></label>
+          <label class="block text-sm mb-3">Feedback immediat <input id="immediate" type="checkbox" class="ml-2" checked></label>
+          <div class="flex gap-2">
+            <button id="startBtn" class="px-3 py-2 rounded-xl border">Comença</button>
+            <button id="resetBtn" class="px-3 py-2 rounded-xl border">Reinicia</button>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-2xl border bg-white/60 dark:bg-neutral-800/60 space-y-2">
+          <div class="text-sm font-medium">Exporta / Importa resultats</div>
+          <div class="flex gap-2 flex-wrap">
+            <button id="exportBtn" class="px-3 py-2 rounded-xl border">Exporta JSON</button>
+            <label class="px-3 py-2 rounded-xl border cursor-pointer">Importa JSON
+              <input id="importInput" type="file" accept="application/json" class="hidden" />
+            </label>
+          </div>
+          <p class="text-xs text-neutral-500">Això guarda respostes/estadístiques (no dades personals).</p>
+        </div>
+
+        <div class="p-3 rounded-2xl border bg-white/60 dark:bg-neutral-800/60">
+          <div class="text-sm font-medium">Estadístiques</div>
+          <ul class="text-sm mt-1 space-y-1 text-neutral-600 dark:text-neutral-300">
+            <li>Total preguntes al banc: <span id="statTotal">0</span></li>
+            <li>Intent actual — correctes: <span id="statHit">0</span>, errades: <span id="statMiss">0</span></li>
+            <li>Puntuació: <span id="statScore">0</span>%</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="md:col-span-2 space-y-4">
+        <div id="quizBox" class="rounded-2xl border bg-white/70 dark:bg-neutral-800/70 p-4 hidden">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <div class="text-sm text-neutral-500">Pregunta <span id="qIndex">1</span>/<span id="qTotal">0</span> · <span id="qTag" class="px-2 py-1 rounded-lg bg-sky-100 text-sky-700">Tema</span></div>
+            <div class="text-sm">Temps: <span id="timer">00:00</span></div>
+          </div>
+          <h2 id="qText" class="text-xl md:text-2xl font-medium mt-2">—</h2>
+          <div id="options" class="mt-4 space-y-2"></div>
+          <div id="explain" class="mt-3 text-sm text-neutral-600 dark:text-neutral-300 hidden"></div>
+          <div class="flex items-center justify-between mt-4 gap-2 flex-wrap">
+            <div class="flex gap-2">
+              <button id="prevBtn" class="px-3 py-2 rounded-xl border">← Anterior</button>
+              <button id="nextBtn" class="px-3 py-2 rounded-xl border">Següent →</button>
+            </div>
+            <div class="flex gap-2">
+              <button id="checkBtn" class="px-3 py-2 rounded-xl border">Corregir</button>
+              <button id="flagBtn" class="px-3 py-2 rounded-xl border">Marca per revisar</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="summary" class="rounded-2xl border bg-white/70 dark:bg-neutral-800/70 p-4 hidden"></div>
+
+        <div class="rounded-2xl border bg-white/60 dark:bg-neutral-800/60 p-4">
+          <div class="text-sm mb-2">Vista prèvia del banc</div>
+          <div id="bankList" class="grid md:grid-cols-2 gap-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="text-xs text-neutral-500 mt-6">© 1r Batx — Docent Biologia. Fitxer únic HTML. Incrusta’l en un iframe o comparteix l’URL a Classroom.</footer>
+  </main>
+
+  <script>
+    // --- Dataset: 55 preguntes (25 + 30). tag: univers | sistema | geologic | datacio
+    // format: {q, opts:[A,B,C,D], answer: index0..3, tag, why}
+    const Q = [
+      // --- Bloc original (25)
+      { q:"Quina afirmació descriu millor el Big Bang?", opts:["Explosió d’estrelles dins l’espai ja existent","Explosió en un punt dins un espai buit i estàtic","Expansió de l’espai mateix des d’un estat calent i dens","Col·lapse gravitatori d’una galàxia"], answer:2, tag:"univers", why:"El Big Bang és un model d’expansió de l’espai, no una explosió dins d’un espai previ."},
+      { q:"La CMB es va originar quan…", opts:["es van formar les primeres estrelles","electrons i nuclis es van recombinar en àtoms i la llum es va desacoblar","van explotar les primeres supernoves","l’Univers tenia minuts d’edat"], answer:1, tag:"univers", why:"La recombinació (~380 ka) permet que la llum viatge lliurement: radiació de fons."},
+      { q:"L’edat acceptada de l’Univers és aproximadament…", opts:["4,6 Ga","10,4 Ga","13,8 Ga","20,1 Ga"], answer:2, tag:"univers", why:"Valor acceptat per cosmologia observacional (Planck, etc.)."},
+      { q:"En el disc protoplanetari, la línia de neu separa…", opts:["roques i metalls","zona on els gels poden condensar-se","planeta nan de planeta major","zona on la fusió nuclear és possible"], answer:1, tag:"sistema", why:"A fora de la línia de neu condensen volàtils i creixen nuclis massius."},
+      { q:"La hipòtesi més acceptada per a l’origen de la Lluna és…", opts:["captura d’un asteroide","co‑formació independent","gran impacte (Theia)","fissionament ràpid de la Terra"], answer:2, tag:"sistema", why:"Impacte gegant amb proto‑planeta Theia → disc de deixalles → agregació lunar."},
+      { q:"En datació relativa, si un dic magmàtic talla diversos estrats, podem afirmar que…", opts:["és més antic","és més recent","són coetanis","no es pot determinar"], answer:1, tag:"geologic", why:"Principi de successió de fenòmens: el que talla és posterior."},
+      { q:"Quina és NO és una descontinuïtat?", opts:["paraconformitat","disconformitat","concordança","discordança angular"], answer:2, tag:"geologic", why:"La concordança implica continuïtat deposicional (sense bretxa)."},
+      { q:"La successió faunística implica que…", opts:["totes les faunes apareixen a la vegada","els fòssils apareixen en un ordre recognoscible","els fòssils són aleatoris","cap de les anteriors"], answer:1, tag:"geologic", why:"L’ordre d’aparició és globalment coherent i útil per correlacionar."},
+      { q:"La fracció de pare restant després de tres mitges vides és…", opts:["1/2","1/3","1/8","1/16"], answer:2, tag:"datacio", why:"(1/2)^3 = 1/8."},
+      { q:"Si P:D = 3:1, el nombre de mitges vides transcorregudes és…", opts:["≈0,42","1","2","3"], answer:0, tag:"datacio", why:"Usant la fórmula senzilla t = T½·log₂(N₀/N): amb P:D=3:1 → N₀=P+D=4k i N=P=3k ⇒ t/T½ = log₂(4/3) ≈ 0,415 mitges vides (menys d’1)." },
+      { q:"L’actualisme ens diu que…", opts:["els processos antics no serveixen avui","els processos actuals expliquen el passat","el temps és cíclic","res del passat és inferible"], answer:1, tag:"geologic", why:"‘El present és la clau del passat’."},
+      { q:"Un contacte entre sediments horitzontals, sobre sediments inclinats erosionats és…", opts:["paraconformitat","disconformitat","discordància angular","inconformitat"], answer:2, tag:"geologic", why:"Inclinats erosionats coberts per horitzontals = angular."},
+      { q:"L’eó amb aparició d’eucariotes i acumulació d’O₂ a l’atmosfera és…", opts:["Hadeà","Arqueà","Proterozoic","Fanerozoic"], answer:2, tag:"geologic", why:"Eucariogènesi i Gran Esdeveniment Oxidatiu."},
+      { q:"Quin planeta actua com a ‘protector’ desviant part de l’enderroc còsmic interior?", opts:["Júpiter","Venus","Neptú","Mercuri"], answer:0, tag:"sistema", why:"La massa i ressonàncies de Júpiter condicionen la dinàmica d’asteroides/cometes."},
+      { q:"Identitat paleontològica s’utilitza per…", opts:["determinar composició química","correlacionar estrats d’edat semblant a partir de fòssils","datar absolutament","estimar temperatura del mar antic"], answer:1, tag:"geologic", why:"Mateixa fauna guia → mateixa edat relativa."},
+      { q:"En un sistema tancat, si queda el 25% del pare radioactiu, quantes mitges vides han passat?", opts:["1","2","3","4"], answer:1, tag:"datacio", why:"(1/2)^2 = 1/4."},
+      { q:"El GOE és important perquè…", opts:["va reduir l’oxigen","va incrementar l’oxigen i va canviar geologia i biologia","va crear la Lluna","marca l’inici del Fanerozoic"], answer:1, tag:"univers", why:"Oxigenació massiva per cianobacteris, canvis redox i biològics."},
+      { q:"La temperatura actual de la CMB és d’uns…", opts:["0 K","2,7 K","27 K","270 K"], answer:1, tag:"univers", why:"Valor observat (~2,725 K)."},
+      { q:"Una inconformitat indica…", opts:["sediments sobre sediments erosionats","sediments sobre ígnies/metamòrfiques erosionades","cap discontinuïtat","només canvi de facies"], answer:1, tag:"geologic", why:"Contacte sedimentari sobre substrat cristal·lí erosionat."},
+      { q:"L’ordre correcte en la formació planetària és…", opts:["embrions → pols → planetesimals → planetes","pols → còdols → planetesimals → embrions → planetes","pols → embrions → còdols → planetesimals","pols → planetes → planetesimals → embrions"], answer:1, tag:"sistema", why:"Seqüència d’acreció per creixement jeràrquic."},
+      { q:"L’explosió Cambriana es data a…", opts:["2,4 Ga","541 Ma","66 Ma","4,6 Ga"], answer:1, tag:"geologic", why:"Inici del Cambrià: ~541 Ma."},
+      { q:"Quina prova NO és clau del model del Big Bang calent?", opts:["desplaçament cap al roig","variacions de salinitat oceànica actual","abundàncies d’elements lleugers","CMB"], answer:1, tag:"univers", why:"La salinitat oceànica no és evidència cosmologica."},
+      { q:"La línia de neu és rellevant perquè…", opts:["defineix l’alçada de muntanyes","controla on poden condensar-se volàtils i afavoreix gegants gasosos","separa roques ígnies de metamòrfiques","marca el límit Terra‑Mart"], answer:1, tag:"sistema", why:"A fora condensen gels → creixement eficient de nuclis massius."},
+      { q:"En datació relativa, inclusions dins una roca sedimentària indiquen que…", opts:["la roca hoste és més antiga","els fragments inclosos són més antics","són coetanis","no es pot saber"], answer:1, tag:"geologic", why:"El fragment ha d’existir abans de ser incorporat."},
+      { q:"Una disconformitat és…", opts:["contacte paral·lel sedimentari‑sedimentari amb erosió entremig","contacte sedimentari sobre ígnia","contacte amb inclinació discordant","cap bretxa temporal"], answer:0, tag:"geologic", why:"Paral·lel però amb superfície erosiva entre paquets sedimentaris."},
+      // --- Simulacre extra (30)
+      { q:"Quin indici observa directament l’expansió de l’Univers?", opts:["Estructures de plaques","Desplaçament cap al roig de galàxies","Línia de neu","Marés terrestres"], answer:1, tag:"univers", why:"Hubble/Lemaître: recessió ∝ distància."},
+      { q:"La nucleosíntesi primordial va produir principalment…", opts:["Fe i Ni","H i He (traça de Li)","C i O","U i Th"], answer:1, tag:"univers", why:"Big Bang Nucleosynthesis: H≈75%, He≈25% en massa."},
+      { q:"La recombinació implica…", opts:["nuclis fusionant-se en Fe","electrons unint-se a nuclis per formar àtoms","estrelles col·lapsant","partícules relativistes creant matèria fosca"], answer:1, tag:"univers", why:"Neutrals → desacoblament dels fotons (CMB)."},
+      { q:"La temperatura actual de la CMB és ~", opts:["0,27 K","27 K","2,7 K","270 K"], answer:2, tag:"univers", why:"Mesures COBE/WMAP/Planck."},
+      { q:"L’edat del Sistema Solar és aproximadament…", opts:["4,6 Ga","13,8 Ga","541 Ma","66 Ma"], answer:0, tag:"sistema", why:"Datació de meteorits (CAIs) ~4,567 Ga."},
+      { q:"El vent solar primerenc va…", opts:["frenar la rotació del Sol","netejar el gas del disc protoplanetari interior","formar la línia de neu","destruir els planetes interiors"], answer:1, tag:"sistema", why:"Dissipa gas i pols, especialment a l’interior."},
+      { q:"Els gegants gasosos es formen preferentment…", opts:["dins la línia de neu","fora de la línia de neu","només al núvol d’Oort","al cinturó d’asteroides"], answer:1, tag:"sistema", why:"On condensen gels i creixen nuclis >10 M⊕."},
+      { q:"La hipòtesi del gran impacte explica…", opts:["l’albedo de Venus","la inclinació d’Urà","l’origen de la Lluna","l’anell de Saturn"], answer:2, tag:"sistema", why:"Formació lunar a partir de deixalles d’impacte Theia-Terra."},
+      { q:"En datació relativa, una falla que talla estrats A, B i C és…", opts:["anterior a A","posterior a A, B i C","coetània amb B","indeterminable"], answer:1, tag:"geologic", why:"El tall és posterior al tallat."},
+      { q:"Una paraconformitat es reconeix perquè…", opts:["hi ha sediments sobre ígnies","hi ha erosió marcada","estrats inclinats coberts per horitzontals","plans paral·lels amb bretxa temporal sense evidència d’erosió"], answer:3, tag:"geologic", why:"Bretxa sense senyal erosiva clara ni canvi d’inclinació."},
+      { q:"L’inconformitat separa…", opts:["sediments i sediments","sediments sobre ígnies/metamòrfiques erosionades","dues laves","dunes successives"], answer:1, tag:"geologic", why:"Base cristal·lina erosionada + coberta sedimentària."},
+      { q:"Si queda 12,5% del pare radioactiu, han transcorregut…", opts:["2 mitges vides","3 mitges vides","4 mitges vides","1 mitja vida"], answer:1, tag:"datacio", why:"(1/2)^3 = 0,125."},
+      { q:"En un mineral amb D/P = 1, quina és la fracció de pare restant?", opts:["1/2","1/3","1/4","2/3"], answer:0, tag:"datacio", why:"P/(P+D)=1/2."},
+      { q:"El GOE es relaciona amb…", opts:["primera vida multicel·lular","augment d’oxigen per fotosíntesi cianobacteriana","formació de la Terra","extinció K–Pg"], answer:1, tag:"univers", why:"Flux d’O₂ a l’atmosfera i canvis en oceans i mineralogia."},
+      { q:"L’explosió Cambriana marca…", opts:["aparició de mamífers","gran diversificació dels plans corporals","aparició de cèl·lules eucariotes","origen dels dinosaures"], answer:1, tag:"geologic", why:"Radiació adaptativa de metazous amb esquelets durs, etc."},
+      { q:"La continuitat lateral implica que…", opts:["les capes desapareixen sempre bruscament","les capes s’estenen fins a afinar-se o canviar de facies","totes les capes són iguals","només val a deserts"], answer:1, tag:"geologic", why:"Dipòsits s’allarguen lateralment amb transicions."},
+      { q:"Inclusions de roca A dins d’un conglomerat B indiquen…", opts:["A és més jove que B","A és més antiga que B","edat igual","res"], answer:1, tag:"geologic", why:"El clast A ha d’existir abans d’incorporar-se a B."},
+      { q:"Pols → còdols → planetesimals → embrions descriu…", opts:["tectònica de plaques","metamorfisme","acreció planetària","glaciacions"], answer:2, tag:"sistema", why:"Etapes de creixement d’objectes al disc."},
+      { q:"El mètode U‑Pb en zircons és útil perquè…", opts:["el zirconi no conté U","tanca bé el sistema i resisteix metamorfisme","només data roques joves","dona edats relatives"], answer:1, tag:"datacio", why:"Alta temperatura de tancament i resistència."},
+      { q:"Una disconformitat és…", opts:["contacte sedimentari‑sedimentari paral·lel amb erosió","sediment sobre ígnia","angular","sense bretxa temporal"], answer:0, tag:"geologic", why:"Superfície erosiva entre paquets paral·lels."},
+      { q:"Actualisme equival a pensar que…", opts:["el passat és incomprensible","els processos actuals són comparables als del passat","els processos canvien cada segle","només val per volcans"], answer:1, tag:"geologic", why:"Misma física/processos bàsics en temps geològic."},
+      { q:"Un dic magmàtic tallant una seqüència indica que el dic és…", opts:["anterior","coetani","posterior","indeterminat"], answer:2, tag:"geologic", why:"El tall és posterior."},
+      { q:"Quina és NO una evidència del Big Bang calent?", opts:["variació de la salinitat oceànica","CMB","abundàncies lleugeres","desplaçament al roig"], answer:0, tag:"univers", why:"No és evidència cosmologica."},
+      { q:"L’energia fosca s’associa amb…", opts:["rotació galàctica","acceleració de l’expansió","fusió estel·lar","col·lapse de núvols"], answer:1, tag:"univers", why:"Observacions de SN Ia i CMB suggereixen acceleració."},
+      { q:"El cinturó d’asteroides es troba entre…", opts:["Terra i Mart","Mart i Júpiter","Júpiter i Saturn","Neptú i el cinturó de Kuiper"], answer:1, tag:"sistema", why:"Regió ~2–3,5 UA."},
+      { q:"Identitat paleontològica serveix per…", opts:["correlacionar estrats","datar absolutament","mesurar temperatura","calcular salinitat"], answer:0, tag:"geologic", why:"Faunes semblants → correlació d’edats relatives."},
+      { q:"En una seqüència sense trastocament, l’estrat més antic és…", opts:["el superior","l’inferior","el del mig","indeterminat"], answer:1, tag:"geologic", why:"Principi de superposició."},
+      { q:"Successió faunística implica que…", opts:["els mateixos fòssils reapareixen aleatòriament","l’ordre d’aparició és globalment coherent","depèn del clima actual","no és útil"], answer:1, tag:"geologic", why:"Base de la bioestratigrafia."},
+      { q:"En K‑Ar, si D/P = 3, quantes mitges vides?", opts:["1","2","3","4"], answer:1, tag:"datacio", why:"D/P=3 ⇒ P/(P+D)=1/4 ⇒ 2 mitges vides."},
+      { q:"La diferència clau entre concordança i discontinuïtat és…", opts:["inclinació d’estrats","existència o no d’una bretxa temporal","litologia","presència de fòssils"], answer:1, tag:"geologic", why:"Discontinuïtat = hiatus temporal; concordança = continuïtat."},
+    ];
+
+    // --- Helpers
+    const $ = (id) => document.getElementById(id);
+    const LS = { get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}}, set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}} };
+    const state = { dark: LS.get('quiz-theme-dark', false), run:null, i:0, answers:{}, flags:{}, startTime:0, timer:null };
+
+    function applyTheme(){ document.documentElement.classList.toggle('dark', state.dark); $('themeBtn').textContent = state.dark ? 'Mode clar' : 'Mode fosc'; }
+    function tagLabel(t){ return {univers:'Univers',sistema:'Sistema Solar',geologic:'Temps geològic',datacio:'Datació'}[t]||t; }
+    function tagColor(t){ return {univers:'bg-sky-100 text-sky-700',sistema:'bg-amber-100 text-amber-700',geologic:'bg-lime-100 text-lime-700',datacio:'bg-violet-100 text-violet-700'}[t]||'bg-neutral-200'; }
+    function shuffle(a){ const c=[...a]; for(let i=c.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [c[i],c[j]]=[c[j],c[i]];} return c; }
+
+    function buildRun(){
+      const topic = $('topic').value; const count = Math.max(5, Math.min(55, parseInt($('count').value)||15));
+      let pool = Q.map((q,i)=>({...q, id:i}));
+      if (topic!=='all') pool = pool.filter(q=>q.tag===topic);
+      if ($('shuffle').checked) pool = shuffle(pool);
+      const run = pool.slice(0, count);
+      state.run = run; state.i = 0; state.answers = {}; state.flags = {}; state.startTime = Date.now();
+      $('qTotal').textContent = run.length; $('statHit').textContent = 0; $('statMiss').textContent = 0; $('statScore').textContent = 0;
+      $('quizBox').classList.remove('hidden'); $('summary').classList.add('hidden');
+      clearInterval(state.timer); state.timer = setInterval(()=>{ const s=Math.floor((Date.now()-state.startTime)/1000); const m=Math.floor(s/60); const r=s%60; $('timer').textContent = `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`; }, 1000);
+      renderQuestion(); renderBank();
+    }
+
+    function renderQuestion(){
+      const run = state.run; if (!run||!run.length) return;
+      const q = run[state.i]; $('qIndex').textContent = state.i+1; $('qText').textContent = q.q; const box=$('options'); box.innerHTML='';
+      $('qTag').textContent = tagLabel(q.tag); $('qTag').className = `px-2 py-1 rounded-lg ${tagColor(q.tag)}`;
+      q.opts.forEach((opt,idx)=>{
+        const id = `opt_${q.id}_${idx}`; const wrapper = document.createElement('div');
+        wrapper.className = 'opt rounded-xl border px-3 py-2';
+        const input = document.createElement('input'); input.type='radio'; input.name='opt'; input.id=id; input.className='mr-2'; input.checked = state.answers[q.id]?.choice===idx;
+        input.onchange = ()=>{ state.answers[q.id] = { choice: idx, correct: idx===q.answer }; saveProgress(); if ($('immediate').checked) showExplain(); updateStats(); };
+        const label = document.createElement('label'); label.htmlFor=id; label.innerHTML = `<span class="font-medium mr-2">${String.fromCharCode(65+idx)})</span> ${opt}`;
+        wrapper.appendChild(input); wrapper.appendChild(label); box.appendChild(wrapper);
+      });
+      $('explain').classList.add('hidden'); $('explain').textContent = q.why || '';
+      updateNavButtons();
+    }
+
+    function showExplain(){
+      const q = state.run[state.i]; const a = state.answers[q.id]; if (!a) return;
+      const exp = $('explain');
+      const ok = a.choice===q.answer;
+      exp.classList.remove('hidden');
+      exp.innerHTML = ok ? `<span class="text-emerald-600 font-medium">Correcte.</span> ${q.why||''}` : `<span class="text-rose-600 font-medium">Incorrecte.</span> Resposta correcta: <strong>${String.fromCharCode(65+q.answer)}</strong>. ${q.why||''}`;
+    }
+
+    function updateStats(){
+      const ans = Object.values(state.answers);
+      const hits = ans.filter(a=>a.correct===true).length; const miss = ans.filter(a=>a.correct===false).length; const total = state.run?.length||0;
+      const score = total? Math.round((hits/total)*100):0; $('statHit').textContent = hits; $('statMiss').textContent = miss; $('statScore').textContent = score;
+    }
+
+    function updateNavButtons(){ $('prevBtn').disabled = state.i===0; $('nextBtn').disabled = state.run && state.i===state.run.length-1; }
+
+    function saveProgress(){ LS.set('quiz-theme-dark', state.dark); LS.set('quiz-progress', { answers: state.answers, flags: state.flags }); }
+
+    function finish(){
+      clearInterval(state.timer);
+      const run = state.run || []; const res = run.map((q,ix)=>({
+        qid:q.id, tag:q.tag, q:q.q, opts:q.opts, answer:q.answer,
+        choice: state.answers[q.id]?.choice ?? null,
+        correct: state.answers[q.id]?.choice === q.answer,
+        why: q.why || ''
+      }));
+      const hits = res.filter(r=>r.correct).length; const score = run.length? Math.round((hits/run.length)*100):0;
+      const flagged = Object.keys(state.flags).map(Number);
+      const summary = $('summary');
+      let html = `<div class="flex items-center justify-between flex-wrap gap-2">
+        <div><div class="text-xl font-semibold">Resultats</div>
+        <div class="text-sm text-neutral-500">Correctes: ${hits}/${run.length} · Puntuació: ${score}%</div></div>
+        <div class="flex gap-2"><button id="reviewWrong" class="px-3 py-2 rounded-xl border">Repassa errades</button>
+        <button id="reviewFlagged" class="px-3 py-2 rounded-xl border">Repassa marcades (${flagged.length})</button></div></div>`;
+      html += `<div class="mt-4 space-y-3">`;
+      res.forEach((r,i)=>{
+        const tagC = tagColor(r.tag);
+        html += `<div class="rounded-xl border p-3">
+          <div class="text-sm flex items-center justify-between"><span class="px-2 py-1 rounded-lg ${tagC}">${tagLabel(r.tag)}</span>
+          <span class="${r.correct? 'text-emerald-600':'text-rose-600'} font-medium">${r.correct? '✓ Correcte':'✗ Incorrecte'}</span></div>
+          <div class="font-medium mt-1">${i+1}. ${r.q}</div>
+          <ul class="mt-1 text-sm text-neutral-700 dark:text-neutral-300">`;
+        r.opts.forEach((o,oi)=>{
+          const isAns = oi===r.answer; const isChoice = oi===r.choice;
+          html += `<li class="pl-2">${String.fromCharCode(65+oi)}) ${o} ${isAns? ' <span class="text-emerald-600">(correcta)</span>':''}${(isChoice&&!isAns)? ' <span class="text-rose-600">(la teva)</span>':''}</li>`;
+        });
+        html += `</ul><div class="text-sm mt-1">${r.why||''}</div></div>`;
+      });
+      html += `</div>`;
+      summary.innerHTML = html; $('summary').classList.remove('hidden');
+      $('quizBox').classList.add('hidden');
+      $('reviewWrong').onclick = ()=> reviewFilter((r)=>!r.correct);
+      $('reviewFlagged').onclick = ()=> reviewFilter((r)=> flagged.includes(r.qid));
+    }
+
+    function reviewFilter(predicate){
+      const run = state.run; if (!run) return;
+      const filtered = run.filter((q)=> predicate({ qid:q.id, correct: state.answers[q.id]?.choice===q.answer }));
+      if (!filtered.length) { alert('No hi ha preguntes per revisar amb aquest criteri.'); return; }
+      state.run = filtered; state.i = 0; $('qTotal').textContent = filtered.length; $('summary').classList.add('hidden'); $('quizBox').classList.remove('hidden'); renderQuestion();
+    }
+
+    function renderBank(){
+      $('statTotal').textContent = Q.length;
+      const root = $('bankList'); root.innerHTML = '';
+      const list = (state.run||[]);
+      list.forEach((q,i)=>{
+        const d=document.createElement('div'); d.className='rounded-2xl p-3 border bg-white/60 dark:bg-neutral-800/60';
+        d.innerHTML = `<div class="text-xs px-2 py-1 rounded-lg ${tagColor(q.tag)} inline-block">${tagLabel(q.tag)}</div>
+          <div class="text-sm font-medium mt-1">${i+1}. ${q.q}</div>
+          <ul class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">${q.opts.map((o,oi)=>`<li>${String.fromCharCode(65+oi)}) ${o}</li>`).join('')}</ul>`;
+        root.appendChild(d);
+      });
+    }
+
+    // Events
+    $('themeBtn').onclick = ()=>{ state.dark=!state.dark; applyTheme(); LS.set('quiz-theme-dark', state.dark); };
+    $('startBtn').onclick = buildRun;
+    $('resetBtn').onclick = ()=>{ state.run=null; state.i=0; state.answers={}; state.flags={}; clearInterval(state.timer); $('quizBox').classList.add('hidden'); $('summary').classList.add('hidden'); renderBank(); updateStats(); };
+    $('prevBtn').onclick = ()=>{ if(!state.run) return; state.i = Math.max(0, state.i-1); renderQuestion(); };
+    $('nextBtn').onclick = ()=>{ if(!state.run) return; if (state.i < state.run.length-1) { state.i++; renderQuestion(); } else { finish(); } };
+    $('checkBtn').onclick = ()=>{ showExplain(); };
+    $('flagBtn').onclick = ()=>{ const q=state.run[state.i]; state.flags[q.id]=!state.flags[q.id]; saveProgress(); alert(state.flags[q.id]? 'Marcada per revisar':'Desmarcada'); };
+
+    $('exportBtn').onclick = ()=>{
+      const blob = new Blob([JSON.stringify({ answers: state.answers, flags: state.flags }, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='resultats_quiz.json'; a.click(); URL.revokeObjectURL(url);
+    };
+    $('importInput').onchange = (e)=>{
+      const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try { const j=JSON.parse(r.result); if(j.answers) state.answers=j.answers; if(j.flags) state.flags=j.flags; alert('Resultats importats.'); } catch {} }; r.readAsText(f); };
+
+    // Init
+    applyTheme(); renderBank(); updateStats();
+  </script>
+</body>
+</html>
