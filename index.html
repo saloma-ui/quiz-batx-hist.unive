@@ -39,7 +39,7 @@
             </select>
           </label>
           <label class="block text-sm mb-2">Nombre d’ítems
-            <input id="count" type="number" min="5" max="55" step="1" value="15" class="mt-1 w-full px-3 py-2 rounded-xl border bg-white/80 dark:bg-neutral-800/70" />
+            <input id="count" type="number" min="5" max="55" step="1" value="55" class="mt-1 w-full px-3 py-2 rounded-xl border bg-white/80 dark:bg-neutral-800/70" />
           </label>
           <label class="block text-sm mb-2">Barreja preguntes <input id="shuffle" type="checkbox" class="ml-2" checked></label>
           <label class="block text-sm mb-3">Feedback immediat <input id="immediate" type="checkbox" class="ml-2" checked></label>
@@ -303,6 +303,17 @@
     // Si hi ha paràmetre URL ?dark=true/false, sobreescriu preferència
     const m = new URLSearchParams(location.search).get('dark');
     if (m === 'true' || m === 'false') { state.dark = (m === 'true'); applyTheme(); LS.set('quiz-theme-dark', state.dark); }
+
+    // Valor per defecte: nombre MÀXIM de preguntes disponibles segons el tema
+    const countEl = $('count');
+    function updateCountMax(){
+      const topic = $('topic').value;
+      const poolLen = topic === 'all' ? Q.length : Q.filter(q => q.tag === topic).length;
+      countEl.max = poolLen;
+      countEl.value = poolLen;
+    }
+    updateCountMax();
+    $('topic').addEventListener('change', updateCountMax);
   </script>
 </body>
 </html>
