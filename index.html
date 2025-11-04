@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Quiz Test Lite — 1r Batx</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind: força mode fosc per classe .dark (no per media)
+    tailwind.config = { darkMode: 'class' };
+  </script>
   <meta name="color-scheme" content="light dark" />
   <style>
     .opt:hover { background: rgba(0,0,0,0.04); }
@@ -165,7 +169,9 @@
     // --- Helpers
     const $ = (id) => document.getElementById(id);
     const LS = { get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}}, set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}} };
-    const state = { dark: LS.get('quiz-theme-dark', false), run:null, i:0, answers:{}, flags:{}, startTime:0, timer:null };
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedDark = LS.get('quiz-theme-dark', null);
+    const state = { dark: (savedDark===null? prefersDark : savedDark), run:null, i:0, answers:{}, flags:{}, startTime:0, timer:null };
 
     function applyTheme(){ document.documentElement.classList.toggle('dark', state.dark); $('themeBtn').textContent = state.dark ? 'Mode clar' : 'Mode fosc'; }
     function tagLabel(t){ return {univers:'Univers',sistema:'Sistema Solar',geologic:'Temps geològic',datacio:'Datació'}[t]||t; }
@@ -294,6 +300,9 @@
 
     // Init
     applyTheme(); renderBank(); updateStats();
+    // Si hi ha paràmetre URL ?dark=true/false, sobreescriu preferència
+    const m = new URLSearchParams(location.search).get('dark');
+    if (m === 'true' || m === 'false') { state.dark = (m === 'true'); applyTheme(); LS.set('quiz-theme-dark', state.dark); }
   </script>
 </body>
 </html>
